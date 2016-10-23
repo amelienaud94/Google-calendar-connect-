@@ -9,6 +9,7 @@ from oauth2client import tools
 from oauth2client.file import Storage
 
 import datetime
+import time
 
 import urllib
 import requests
@@ -64,10 +65,11 @@ def main():
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('calendar', 'v3', http=http)
 
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+    timeMin = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+    formattedTimeMin = timeMin.isoformat() + 'Z'
     print('Getting the upcoming 1 event')
     eventsResult = service.events().list(
-        calendarId='primary', timeMin=now, maxResults=1, singleEvents=True,
+        calendarId='primary', timeMin=formattedTimeMin, maxResults=1, singleEvents=True,
         orderBy='startTime').execute()
     events = eventsResult.get('items', [])
 
@@ -75,9 +77,11 @@ def main():
         print('No upcoming events found.')
     for event in events:
         start = event['start'].get('dateTime', event['start'].get('date'))
-        computeAlarmTime(start, event['location'])
+        if event.has_key('location'):
+            computeAlarmTime(start, event['location'])
 
 def computeAlarmTime(startTime, location):
+    print(startTime, location)
     adresseDepart="48 Boulevard des Batignolles, 75017 Paris "
     print(urllib.quote(adresseDepart))
     rcoordDepart=requests.get("http://maps.googleapis.com/maps/api/geocode/json?address="+urllib.quote(adresseDepart)+"&sensor=false")
